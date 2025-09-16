@@ -15,6 +15,12 @@ namespace ThisSideUp.Boxes.Effects
         public void StartFollowing(Transform follow)
         {
             toFollow = follow;
+
+            if (follow != null) { Debug.Log("Follow isn't null"); }
+
+            me.position = toFollow.position;
+            me.rotation = toFollow.rotation;
+
             moving = true;
         }
 
@@ -24,10 +30,10 @@ namespace ThisSideUp.Boxes.Effects
             me.rotation = toFollow.rotation;
 
             moving = false;
-            enabled = false;
+            //enabled = false;
         }
 
-        void Start()
+        void Awake()
         {
 
             if (gameObject.transform.parent == null)

@@ -22,8 +22,7 @@ public class BoxInstance : MonoBehaviour
     [SerializeField] MovingBlock movingBlock;
 
     public void InstantiateBox(GameObject displayPrefab)
-    {
-        
+    {        
         //Add each BoxCollider from the DISPLAY PREFAB to this object, the BOX INSTANCE.
         foreach(BoxCollider coll in displayPrefab.GetComponents<BoxCollider>())
         {
@@ -46,6 +45,7 @@ public class BoxInstance : MonoBehaviour
         }
 
         //Configure, then enable, the MovingBlock component attached to this object.
+
         movingBlock.childFollow = displayAnchor.GetComponent<DelayedFollow>();
         movingBlock.blockState = BlockState.Inventory;
         movingBlock.enabled = true;

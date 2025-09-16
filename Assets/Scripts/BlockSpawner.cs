@@ -1,4 +1,6 @@
 using System.Collections.Generic;
+using System.Threading;
+using ThisSideUp.Boxes;
 using ThisSideUp.Boxes.Core;
 using UnityEngine;
 using static ThisSideUp.Boxes.Core.BoxIDs;
@@ -39,7 +41,6 @@ public class BlockSpawner : MonoBehaviour
         }
 
     }
-
     private void Start()
     {
         boxInstancePrefab = Resources.Load<GameObject>("Base Block Instance");
@@ -56,45 +57,57 @@ public class BlockSpawner : MonoBehaviour
 
     private void Update()
     {
-        if (Input.GetKeyDown(KeyCode.PageUp))
+        if (Input.GetKeyDown(KeyCode.T))
         {
-            if (boxInstancePrefab != null)
-            {
-                Debug.Log("Attempting to spawn block...");
+            BoxInstance newInstance= SpawnRandomBlock();
 
-                //Instantiate the BOX INSTANCE prefab under the map. This does not obey clamping or collision.
-                GameObject spawnedBox=Instantiate(boxInstancePrefab);
-
-                //spawnedBox.gameObject.SetActive(false);
-
-                //Pick a random BoxBase struct from list of boxes in BoxIDs.
-                //This BoxBase contains the DISPLAY PREFAB, which gets instantiated in BoxInstance.cs.
-                //There must be at least one or this will break
-                List<BoxBase> boxes = BoxIDs.Instance.boxes;
-                BoxBase randomBox = boxes[Random.Range(0,boxes.Count-1)]; //testing purposes
-
-                Debug.Log("I choose the box '" + randomBox.name + "!");
-
-                //The DISPLAY PREFAB of the chosen box. Contains appearance and colliders.
-                GameObject displayPrefab = randomBox.appearance;
-
-                //Tell the BoxInstance to instantiate the DISPLAY PREFAB.
-                BoxInstance spawnedBoxInstance=spawnedBox.GetComponent<BoxInstance>();
-
-                spawnedBoxInstance.InstantiateBox(displayPrefab);
-
-                //Move the BoxInstance under the map for now.
-                Vector3 underMap = new Vector3(0, -10, 0);
-                spawnedBox.transform.position = underMap;
-            }
-            else
-            {
-                Debug.Log("The box instance prefab is null, so nothing can spawn. Aborting spawn attempt...");
-            }
-
-
+            MouseTracker.Instance.SelectBlock(newInstance.GetComponent<MovingBlock>());
         }
 
+    }
+
+    private BoxInstance SpawnRandomBlock()
+    {
+
+        BoxInstance spawnedInstance = null;
+
+        if (boxInstancePrefab != null)
+        {
+            Debug.Log("Attempting to spawn block...");
+
+            //Instantiate the BOX INSTANCE prefab under the map. This does not obey clamping or collision.
+            GameObject spawnedBox = Instantiate(boxInstancePrefab);
+
+            //spawnedBox.gameObject.SetActive(false);
+
+            //Pick a random BoxBase struct from list of boxes in BoxIDs.
+            //This BoxBase contains the DISPLAY PREFAB, which gets instantiated in BoxInstance.cs.
+            //There must be at least one or this will break
+            List<BoxBase> boxes = BoxIDs.Instance.boxes;
+            BoxBase randomBox = boxes[Random.Range(0, boxes.Count - 1)]; //testing purposes
+
+            Debug.Log("I choose the box '" + randomBox.name + "!");
+
+            //The DISPLAY PREFAB of the chosen box. Contains appearance and colliders.
+            GameObject displayPrefab = randomBox.appearance;
+
+            //Tell the BoxInstance to instantiate the DISPLAY PREFAB.
+            BoxInstance spawnedBoxInstance = spawnedBox.GetComponent<BoxInstance>();
+
+            spawnedBoxInstance.InstantiateBox(displayPrefab);
+
+            //Move the BoxInstance under the map for now.
+            Vector3 underMap = new Vector3(0, -10, 0);
+            spawnedBox.transform.position = underMap;
+
+            spawnedInstance = spawnedBoxInstance;
+        }
+        else
+        {
+            Debug.Log("The box instance prefab is null, so nothing can spawn. Aborting spawn attempt...");
+        }
+
+        return spawnedInstance;
     }
 
 }

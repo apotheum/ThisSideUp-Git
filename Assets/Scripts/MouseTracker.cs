@@ -7,6 +7,38 @@ namespace ThisSideUp.Boxes.Core
 {
     public class MouseTracker : MonoBehaviour
     {
+        private static MouseTracker instance;
+        public static MouseTracker Instance
+        {
+            get
+            {
+                if (instance == null)
+                {
+                    GameObject instanceObject = new GameObject("Mouse Tracker Object");
+                    instance = instanceObject.AddComponent<MouseTracker>();
+                }
+
+                return instance;
+            }
+        }
+
+        //Singleton initialization
+        private void Awake()
+        {
+
+            if (instance == null)
+            {
+                instance = this;
+            }
+
+            else
+            {
+                Destroy(gameObject);
+                return;
+            }
+
+        }
+
         private Camera cam;
         [SerializeField] private LayerMask mask;
         [SerializeField] public GameObject debugIndicator;
@@ -40,13 +72,21 @@ namespace ThisSideUp.Boxes.Core
         public void SelectBlock(MovingBlock block)
         {
             selectedBlock = block;
+
+            block.StartPlacing();
+
+            block.transform.position = lastHoveredPosition;
+            GridManager.Instance.FindClampedLocationInGrid(lastHoveredPosition, selectedBlock);
+
             Debug.Log("Selected block '"+block.gameObject.name+"'");
         }
 
         //Deselect a movingblock. Does not place the block.
         public void DeselectBlock()
         {
-            selectedBlock = null;
+            selectedBlock.StopPlacing();
+
+            selectedBlock = null;           
             Debug.Log("Deselected block");
         }
 
@@ -54,14 +94,9 @@ namespace ThisSideUp.Boxes.Core
         public void PlaceCurrentBlock()
         {
             GridManager.Instance.FindClampedLocationInGrid(BoxUtils.roundToGrid(selectedBlock.transform.position), selectedBlock);
+            selectedBlock.StopPlacing();
 
-            DelayedFollow follow = selectedBlock.childFollow;
-
-            follow.StopFollowing();
-            follow.gameObject.transform.parent = transform;
-
-            selectedBlock.blockState = BlockState.Placed;
-            selectedBlock.enabled = false;
+            selectedBlock.gameObject.layer = 6;
 
             DeselectBlock();
         }

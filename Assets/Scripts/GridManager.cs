@@ -69,7 +69,6 @@ namespace ThisSideUp.Boxes.Core
         {
             insideCollider.Clear();
 
-
             //This method does two things:
             //1. Clamps the location of the parent transform so all of the block's colliders fit inside the grid.
             //2. Finds the next available grid position on the Z AXIS ONLY that isn't occupied. 

@@ -1,4 +1,5 @@
 using System;
+using System.Threading;
 using ThisSideUp.Boxes.Core;
 using ThisSideUp.Boxes.Effects;
 using UnityEngine;
@@ -60,7 +61,31 @@ namespace ThisSideUp.Boxes
 
         }
 
+        //Start placing block; decouples DISPLAY ANCHOR from BOX INSTANCE to allow smooth gliding.
+        public void StartPlacing()
+        {
+            childFollow.toFollow = gameObject.transform;
+            childFollow.gameObject.transform.parent = null;
 
+            blockState = BlockState.Placing;
+
+            Transform thisTransform=gameObject.transform;
+            if(thisTransform != null) { Debug.Log("baby need smoko!!!!!!!!"); }
+
+            childFollow.StartFollowing(gameObject.transform);
+
+            Debug.Log("Selected");
+        }
+
+        //Stop placing block; reparents DISPLAY ANCHOR to BOX INSTANCE.
+        public void StopPlacing()
+        {
+            childFollow.StopFollowing();
+            childFollow.gameObject.transform.parent = transform;
+
+            blockState = BlockState.Placed;
+            enabled = false;
+        }
 
         //Converts all enabled BoxColliders into triggers. Enables certain box interactions.
         //Legacy code that might be removed.
@@ -84,37 +109,23 @@ namespace ThisSideUp.Boxes
         // Update is called once per frame
         void Update()
         {
-
-            if (Input.GetMouseButtonDown(2))
-            {
-                if (blockState == BlockState.Placing)
-                {
-                }
-            }
-
             if (blockState != BlockState.Inventory) { return; }
 
             //Dev key to select the box. This is the same as selecting it from the inventory.
             //Set MouseTracker's currently selected block to this block.
             //We unparent the child Display Anchor and allow it to glide to the position of the block.
-            if (Input.GetKeyDown(KeyCode.F))
+            //if (Input.GetKeyDown(KeyCode.F))
             {
-                if (placed)
+                if (!placed)
                 {
-                    placed = false;
-                }
-                else
-                {
-                    childFollow.StartFollowing(gameObject.transform);
-                    childFollow.gameObject.transform.parent = null;
 
-                    tracker.SelectBlock(this);
+                    if (Input.GetKeyDown(KeyCode.G))
+                    {
+                        MouseTracker.Instance.SelectBlock(this);
+                        placed = true;
 
-                    blockState = BlockState.Placing;
+                    }
 
-                    Debug.Log("Selected");
-
-                    placed = true;
                 }
             }
         }

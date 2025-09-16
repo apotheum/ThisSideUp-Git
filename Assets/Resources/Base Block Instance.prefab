@@ -56,7 +56,7 @@ GameObject:
   - component: {fileID: 3532003695216454567}
   - component: {fileID: 1968519995934878938}
   - component: {fileID: 6798314018038030929}
-  m_Layer: 6
+  m_Layer: 0
   m_Name: Base Block Instance
   m_TagString: Untagged
   m_Icon: {fileID: 2800000, guid: f5d3fe4c2d2b9cd46974e9bd51496311, type: 3}
