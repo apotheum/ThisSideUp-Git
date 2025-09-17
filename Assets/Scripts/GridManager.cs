@@ -154,7 +154,7 @@ namespace ThisSideUp.Boxes.Core
 
             //The lowest possible valid Z layer. By default, this is 0, but the cursor can sometimes be at a Z level higher than 0,
             //so we default to the player's input.
-            float nextZLayer = parentPos.z+shiftZ;
+            float nextZLayer = 0;
 
             //Grid-clamped position without respect for the Z layer.
             //This forces the block to stay inside the grid, but does nothing for the Z layer.
@@ -181,7 +181,7 @@ namespace ThisSideUp.Boxes.Core
             List<Vector3> pointsInCopiedColliders = GridSpacesInColliders(selectedBlock.GetComponents<BoxCollider>());
 
             //For every Z layer above the pointerLoc...
-            for(float i = pointerLoc.z; i < 20 /* Arbitrary value of 20 */; i++)
+            for(float i = 0; i < 20 /* Arbitrary value of 20 */; i++)
             {
                 //If every collider is safe. Default true, but becomes false if we find ANY collider belonging not to us.
                 bool safe = true;
