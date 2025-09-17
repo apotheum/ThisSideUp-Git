@@ -9,7 +9,7 @@ namespace ThisSideUp.Boxes.Effects
         private bool moving = false;
         private Transform me;
 
-        private static float lerpSpeed = 35.0f;
+        [SerializeField] private float lerpSpeed = 35.0f;
 
         //Decouple this child from its parent, then set it as a follow target.
         public void StartFollowing(Transform follow)

@@ -45,6 +45,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   toFollow: {fileID: 3532003695216454567}
+  lerpSpeed: 30
 --- !u!1 &6267691368786944945
 GameObject:
   m_ObjectHideFlags: 0

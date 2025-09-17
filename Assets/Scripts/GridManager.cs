@@ -104,26 +104,21 @@ namespace ThisSideUp.Boxes.Core
             float maxY = int.MinValue;
             float maxZ = int.MinValue;
 
+            //List<Collider> hitColliders = new List<Collider>();
 
-            List<Collider> hitColliders = new List<Collider>();
+            BoxCollider[] blockColliders = selectedBlock.GetComponents<BoxCollider>();
 
-            //A List containing every possible grid position INSIDE each collider.
-            List<Vector3> gridSpacesInCollider = new List<Vector3>();
-
+            //Every grid space inside every collider on this GameObject.
+            List<Vector3> gridSpacesInCollider = GridSpacesInColliders(blockColliders);
 
             //Calculate the maximum X and Y coordinate of each vertex in any colliders attached to the parent object.
             //This results in a rectangle shape that takes into account all of the colliders;
             //later, we check its extents if they are outside grid space.
-            foreach (BoxCollider coll in selectedBlock.GetComponents<BoxCollider>())
+            foreach (BoxCollider coll in blockColliders)
             {
                 if (coll.enabled)
                 {
                     Vector3[] worldspaceVerts = WorldspaceColliderVertices(coll);
-
-                    //Local min and max of THIS collider.
-                    Vector3 colliderLocalMin = new Vector3(float.MaxValue, float.MaxValue, float.MaxValue);
-                    Vector3 colliderLocalMax = new Vector3(float.MinValue, float.MinValue, float.MinValue);
-
 
                     foreach (Vector3 pos in worldspaceVerts)
                     {
@@ -137,38 +132,6 @@ namespace ThisSideUp.Boxes.Core
                         if (pos.y < minY) { minY = pos.y; }
                         if (pos.z < minZ) { minZ = pos.z; }
 
-                        //Update colliderLocalMin and Max to the min and max coordinates of THIS collider.
-                        //This allows us to iterate through it later on and find valid grid positions to check other blocks against.
-                        if (pos.x > colliderLocalMax.x) { colliderLocalMax.x = pos.x; }
-                        if (pos.y > colliderLocalMax.y) { colliderLocalMax.y = pos.y; }
-                        if (pos.z > colliderLocalMax.z) { colliderLocalMax.z = pos.z; }
-
-                        if (pos.x < colliderLocalMin.x) { colliderLocalMin.x = pos.x; }
-                        if (pos.y < colliderLocalMin.y) { colliderLocalMin.y = pos.y; }
-                        if (pos.z < colliderLocalMin.z) { colliderLocalMin.z = pos.z; }
-                    }
-
-                    //With the local min and max, we iterate through every possible grid coordinate to get a list.
-                    localMinCornerSphere.transform.position = colliderLocalMin;
-                    localMaxCornerSphere.transform.position = colliderLocalMax;
-
-                    //Pick a point. This point is guaranteed to be INSIDE the box at the corner of the lowest coordinate of the collider.
-                    Vector3 firstInsidePoint = colliderLocalMin + new Vector3(0.5f, 0.5f, 0.5f);
-
-                    //Starting from that point, we iterate through each XYZ coordinate up to the maximum.
-                    //This lets us identify valid grid positions inside the collider, and thus, the rest of the box.
-                    for (float insideX = firstInsidePoint.x; insideX <= colliderLocalMax.x; insideX++)
-                    {
-                        for (float insideY = firstInsidePoint.y; insideY <= colliderLocalMax.y; insideY++)
-                        {
-                            for (float insideZ = firstInsidePoint.z; insideZ <= colliderLocalMax.z; insideZ++)
-                            {
-                                Vector3 insidePoint = new Vector3(insideX, insideY, insideZ);
-
-                                gridSpacesInCollider.Add(insidePoint);
-                                //insideCollider.Add(insidePoint);
-                            }
-                        }
                     }
                 }
             }
@@ -189,93 +152,225 @@ namespace ThisSideUp.Boxes.Core
             if (maxY > gridWidthHeight) { shiftY = gridWidthHeight - maxY + 0.5f; }
 
 
-            //Calculate the next valid Z layer.
-            float nextZLayer = pointerLoc.z;
+            //The lowest possible valid Z layer. By default, this is 0, but the cursor can sometimes be at a Z level higher than 0,
+            //so we default to the player's input.
+            float nextZLayer = parentPos.z+shiftZ;
 
-
-
-            float minCollisionZLayer = float.MaxValue;
-
-            //Check each grid point for any existing collider gameObjects with a MovingBlock component.
-            //This locates any existing blocks, placed or otherwise.
-            List<GameObject> blocksFound = new List<GameObject>();
-
-            foreach (Vector3 gridPoint in gridSpacesInCollider)
-            {
-                Collider[] collidersHere = Physics.OverlapSphere(gridPoint, 0.01f);
-
-                if (collidersHere.Length > 0)
-                {
-                    foreach (Collider collider in collidersHere)
-                    {
-                        if (collider is BoxCollider)
-                        {
-                            //If the block we're colliding with isn't us...
-                            GameObject thisBlock = collider.gameObject;
-                            if (thisBlock != selectedBlock.gameObject)
-                            {
-
-                                //And if that block has a MovingBlock component (and is therefore a block...)
-                                MovingBlock blockCollide = thisBlock.GetComponent<MovingBlock>();
-                                if (blockCollide != null)
-                                {
-
-                                    //If we haven't found this block before...
-                                    if (!blocksFound.Contains(blockCollide.gameObject))
-                                    {
-                                        blocksFound.Add(blockCollide.gameObject);
-
-                                        //Block thickness is always at least 1.
-                                        float blockThickness = 1;
-
-
-                                        Vector3[] worldspaceVerts = WorldspaceColliderVertices((BoxCollider)collider);
-                                        blockThickness = (float)Mathf.RoundToInt(worldspaceVerts[4].z - worldspaceVerts[0].z);
-
-                                        Debug.Log("THICKNESS OF " + blockThickness);
-
-                                        float blockZ = thisBlock.transform.position.z + blockThickness;
-                                        Debug.Log("Block Z:" + blockZ);
-
-                                        if (blockZ < minCollisionZLayer) { minCollisionZLayer = blockZ; }
-                                    }
-                                }
-                            }
-                        }
-
-                    }
-                }
-            }
-
-            if (blocksFound.Count > 0)
-            {
-                nextZLayer = minCollisionZLayer;
-
-                string blocksCollated = "";
-                foreach (GameObject blockFound in blocksFound) { blocksCollated = "'" + blockFound.name + "' "; }
-
-                Debug.Log("Min collision layer:" + minCollisionZLayer);
-
-                Debug.Log("Found blocks: " + blocksCollated);
-            }
-
-
-            Vector3 newPos = new Vector3(
+            //Grid-clamped position without respect for the Z layer.
+            //This forces the block to stay inside the grid, but does nothing for the Z layer.
+            //The Z layer is calculated based on blocks - up ahead.
+            Vector3 initialPosWithoutZ = new Vector3(
                 parentPos.x + shiftX,
                 parentPos.y + shiftY,
-                nextZLayer
+                nextZLayer 
             );
 
-            lastValidPosition = newPos;
+            //The next "free" Z position the block can fit in.
+            //This starts at pointerLoc.z, but increases if there are no free spaces for any of the box's colliders.
+            float nextAvailableZPos = nextZLayer;
 
-            if (selectedBlock.transform.position != newPos)
+            //We start at the original location.
+            selectedBlock.transform.position = initialPosWithoutZ;
+
+            //Starting from the PointerLoc Z position, moving 1 space at a time, check every Worldspace grid position in each collider
+            //for any other BoxCollider in existence there.
+            Debug.Log("PointerLoc Z is starting at " + pointerLoc.z);
+
+            //Every Vector3 position in every collider of the copied object.
+            //These positions get added to the value 'i' in the following loop on the Z axis.
+            List<Vector3> pointsInCopiedColliders = GridSpacesInColliders(selectedBlock.GetComponents<BoxCollider>());
+
+            //For every Z layer above the pointerLoc...
+            for(float i = pointerLoc.z; i < 20 /* Arbitrary value of 20 */; i++)
+            {
+                //If every collider is safe. Default true, but becomes false if we find ANY collider belonging not to us.
+                bool safe = true;
+
+                float iteratingZPos = i;
+
+                foreach (Vector3 gridPos in pointsInCopiedColliders)
+                {
+                    Vector3 posToTest = gridPos;
+                    posToTest.z=gridPos.z+i;
+
+                    insideCollider.Add(posToTest);
+
+                    List<GameObject> blocksAtPosition = FindBlocksAtPosition(posToTest, selectedBlock);
+
+                    if (blocksAtPosition.Count > 0)
+                    {
+                        Debug.Log("Found other block at " + posToTest.x + ", " + posToTest.y + ", " + posToTest.z);
+                        safe = false;
+                        break;
+                    }
+
+                }
+
+                if (safe)
+                {
+                    Vector3 iteratedPos = new Vector3(initialPosWithoutZ.x, initialPosWithoutZ.y, iteratingZPos);
+                    nextAvailableZPos = iteratingZPos;
+                    Debug.Log("Found safe position at " + iteratedPos);
+                    break;
+                }
+
+            }
+
+            //Finally, we have a Vector3 that's both clamped inside the grid and has found the next free Z position.
+            Vector3 blockSnappedPos = initialPosWithoutZ;
+            blockSnappedPos.z = nextAvailableZPos;
+
+            Debug.Log("Ended up with " + blockSnappedPos.x + ", " + blockSnappedPos.y + ", " + blockSnappedPos.z);
+
+
+            //float minCollisionZLayer = float.MaxValue;
+            ////Check each grid point for any existing collider gameObjects with a MovingBlock component.
+            ////This locates any existing blocks, placed or otherwise.
+
+
+            lastValidPosition = blockSnappedPos;
+
+            if (selectedBlock.transform.position != blockSnappedPos)
             {
                 //Debug.Log("new pos");
             }
 
-            selectedBlock.transform.position = newPos;
+            selectedBlock.transform.position = blockSnappedPos;
 
 
+
+
+        }
+
+        public List<GameObject> FindBlocksAtPosition(Vector3 gridPoint, MovingBlock selectedBlock)
+        {
+
+            List<GameObject> blocksFound = new List<GameObject>();
+
+
+            Collider[] collidersHere = Physics.OverlapSphere(gridPoint, 0.01f);
+
+            if (collidersHere.Length > 0)
+            {
+                foreach (Collider collider in collidersHere)
+                {
+                    if (collider is BoxCollider)
+                    {
+                        //If the block we're colliding with isn't us...
+                        GameObject thisBlock = collider.gameObject;
+                        if (thisBlock != selectedBlock.gameObject)
+                        {
+
+                            //And if that block has a MovingBlock component (and is therefore a block...)
+                            MovingBlock blockCollide = thisBlock.GetComponent<MovingBlock>();
+                            if (blockCollide != null)
+                            {
+
+                                //If we haven't found this block before...
+                                if (!blocksFound.Contains(blockCollide.gameObject))
+                                {
+                                    blocksFound.Add(blockCollide.gameObject);
+
+                                    //Block thickness is always at least 1.
+                                    //float blockThickness = 1;
+
+
+                                    //Vector3[] worldspaceVerts = WorldspaceColliderVertices((BoxCollider)collider);
+                                    //blockThickness = (float)Mathf.RoundToInt(worldspaceVerts[4].z - worldspaceVerts[0].z);
+
+                                    //Debug.Log("THICKNESS OF " + blockThickness);
+
+                                    //float blockZ = thisBlock.transform.position.z + blockThickness;
+                                    //Debug.Log("Block Z:" + blockZ);
+
+                                    //if (blockZ < minCollisionZLayer) { minCollisionZLayer = blockZ; }
+                                }
+                            }
+                        }
+                    }
+
+                }
+            }
+
+            //if (blocksFound.Count > 0)
+            //{
+            //    nextZLayer = minCollisionZLayer;
+
+            //    string blocksCollated = "";
+            //    foreach (GameObject blockFound in blocksFound) { blocksCollated = "'" + blockFound.name + "' "; }
+
+            //    Debug.Log("Min collision layer:" + minCollisionZLayer);
+
+            //    Debug.Log("Found blocks: " + blocksCollated);
+            //}
+
+            return blocksFound;
+        }
+
+
+        //This method obtains every Worldspace Grid position inside the object's colliders.
+        public List<Vector3> GridSpacesInColliders(BoxCollider[] colliders)
+        {
+
+
+            //A List containing every possible grid position INSIDE each collider.
+            List<Vector3> gridSpacesInCollider = new List<Vector3>();
+
+
+            //Calculate the maximum X and Y coordinate of each vertex in any colliders attached to the parent object.
+            //This results in a rectangle shape that takes into account all of the colliders;
+            //later, we check its extents if they are outside grid space.
+            foreach (BoxCollider coll in colliders)
+            {
+                if (coll.enabled)
+                {
+                    Vector3[] worldspaceVerts = WorldspaceColliderVertices(coll);
+
+                    //Local min and max of THIS collider.
+                    Vector3 colliderLocalMin = new Vector3(float.MaxValue, float.MaxValue, float.MaxValue);
+                    Vector3 colliderLocalMax = new Vector3(float.MinValue, float.MinValue, float.MinValue);
+
+
+                    foreach (Vector3 pos in worldspaceVerts)
+                    {
+                        //Update colliderLocalMin and Max to the min and max coordinates of THIS collider.
+                        //This allows us to iterate through it later on and find valid grid positions to check other blocks against.
+                        if (pos.x > colliderLocalMax.x) { colliderLocalMax.x = pos.x; }
+                        if (pos.y > colliderLocalMax.y) { colliderLocalMax.y = pos.y; }
+                        if (pos.z > colliderLocalMax.z) { colliderLocalMax.z = pos.z; }
+
+                        if (pos.x < colliderLocalMin.x) { colliderLocalMin.x = pos.x; }
+                        if (pos.y < colliderLocalMin.y) { colliderLocalMin.y = pos.y; }
+                        if (pos.z < colliderLocalMin.z) { colliderLocalMin.z = pos.z; }
+                    }
+
+                    //With the local min and max, we iterate through every possible grid coordinate to get a list.
+
+                    //Identify min and max of this local collider
+                    localMinCornerSphere.transform.position = colliderLocalMin;
+                    localMaxCornerSphere.transform.position = colliderLocalMax;
+
+                    //Pick a point. This point is guaranteed to be INSIDE the box at the corner of the lowest coordinate of the collider.
+                    Vector3 firstInsidePoint = colliderLocalMin + new Vector3(0.5f, 0.5f, 0.5f);
+
+                    //Starting from that point, we iterate through each XYZ coordinate up to the maximum.
+                    //This lets us identify valid grid positions inside the collider, and thus, the rest of the box.
+                    for (float insideX = firstInsidePoint.x; insideX <= colliderLocalMax.x; insideX++)
+                    {
+                        for (float insideY = firstInsidePoint.y; insideY <= colliderLocalMax.y; insideY++)
+                        {
+                            for (float insideZ = firstInsidePoint.z; insideZ <= colliderLocalMax.z; insideZ++)
+                            {
+                                Vector3 insidePoint = new Vector3(insideX, insideY, insideZ);
+
+                                gridSpacesInCollider.Add(insidePoint);                                
+                            }
+                        }
+                    }
+                }
+            }
+
+            return gridSpacesInCollider;
         }
 
         //This method obtains the worldspace position of each vertex in a BoxCollider.

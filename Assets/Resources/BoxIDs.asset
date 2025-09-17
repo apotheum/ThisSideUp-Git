@@ -13,6 +13,8 @@ MonoBehaviour:
   m_Name: BoxIDs
   m_EditorClassIdentifier: 
   boxes:
+  - appearance: {fileID: 2341631732934446681, guid: 7dbba87ea72f13645990bb7fd05a12fb, type: 3}
+    name: 2x2x1 Saucer
   - appearance: {fileID: 2341631732934446681, guid: 884f1ba9fdee5b244aea7de406b53f01, type: 3}
     name: Cable Spool
   - appearance: {fileID: 2341631732934446681, guid: c1477b72bcf0adf4abb34e724cf9143d, type: 3}
