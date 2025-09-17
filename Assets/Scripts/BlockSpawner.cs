@@ -84,7 +84,9 @@ public class BlockSpawner : MonoBehaviour
             //This BoxBase contains the DISPLAY PREFAB, which gets instantiated in BoxInstance.cs.
             //There must be at least one or this will break
             List<BoxBase> boxes = BoxIDs.Instance.boxes;
-            BoxBase randomBox = boxes[Random.Range(0, boxes.Count - 1)]; //testing purposes
+            BoxBase randomBox = boxes[Random.Range(0, boxes.Count - 1)];
+
+            //randomBox = boxes[2]; //testing purposes
 
             Debug.Log("I choose the box '" + randomBox.name + "!");
 

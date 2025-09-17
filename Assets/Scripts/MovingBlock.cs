@@ -70,11 +70,11 @@ namespace ThisSideUp.Boxes
             blockState = BlockState.Placing;
 
             Transform thisTransform=gameObject.transform;
-            if(thisTransform != null) { Debug.Log("baby need smoko!!!!!!!!"); }
+            //if(thisTransform != null) { Debug.Log("baby need smoko!!!!!!!!"); }
 
             childFollow.StartFollowing(gameObject.transform);
 
-            Debug.Log("Selected");
+            //Debug.Log("Selected");
         }
 
         //Stop placing block; reparents DISPLAY ANCHOR to BOX INSTANCE.

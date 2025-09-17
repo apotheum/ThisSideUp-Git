@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Events;
 
 namespace ThisSideUp.Boxes.Core
 {
@@ -21,6 +22,10 @@ namespace ThisSideUp.Boxes.Core
             }
         }
 
+        //The Gravity Check event. This gets called through two methods:
+        //1. A player places the block. Checks once.
+        //2. A block finishes its gravity routine.
+        public UnityEvent GravityCheckEvent = new UnityEvent();
 
         [SerializeField] private GameObject minCornerSphere;
         [SerializeField] private GameObject maxCornerSphere;
@@ -33,6 +38,7 @@ namespace ThisSideUp.Boxes.Core
         private Vector3 lastValidPosition;
 
         public int gridWidthHeight = 7;
+        public int highestGridZ = 11;
 
         //Singleton initialization
         private void Awake()

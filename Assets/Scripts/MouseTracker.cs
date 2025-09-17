@@ -2,6 +2,7 @@ using ThisSideUp.Boxes;
 using ThisSideUp.Boxes.Core;
 using ThisSideUp.Boxes.Effects;
 using UnityEngine;
+using UnityEngine.Events;
 
 namespace ThisSideUp.Boxes.Core
 {
@@ -45,6 +46,8 @@ namespace ThisSideUp.Boxes.Core
 
         private Vector3 lastHoveredPosition;
 
+        public UnityEvent<Vector3> BlockPlaceEvent = new UnityEvent<Vector3>();
+
         /* USER SETTINGS */
         private MovementMode movementMode;
         private void OnSettingsUpdate()
@@ -71,6 +74,11 @@ namespace ThisSideUp.Boxes.Core
         //Select a MovingBlock component on a BLOCK INSTANCE gameobject.
         public void SelectBlock(MovingBlock block)
         {
+            if (selectedBlock != null)
+            {
+                PlaceCurrentBlock();
+            }
+
             selectedBlock = block;
 
             block.StartPlacing();
@@ -97,6 +105,7 @@ namespace ThisSideUp.Boxes.Core
             selectedBlock.StopPlacing();
 
             selectedBlock.gameObject.layer = 6;
+            BlockPlaceEvent.Invoke(selectedBlock.transform.position);
 
             DeselectBlock();
         }

@@ -16,7 +16,7 @@ namespace ThisSideUp.Boxes.Effects
         {
             toFollow = follow;
 
-            if (follow != null) { Debug.Log("Follow isn't null"); }
+            //if (follow != null) { Debug.Log("Follow isn't null"); }
 
             me.position = toFollow.position;
             me.rotation = toFollow.rotation;
