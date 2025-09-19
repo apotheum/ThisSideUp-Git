@@ -1,7 +1,11 @@
+using NUnit.Framework;
 using NUnit.Framework.Constraints;
+using System.Collections.Generic;
 using ThisSideUp.Boxes;
+using ThisSideUp.Boxes.Core;
 using ThisSideUp.Boxes.Effects;
 using UnityEngine;
+using static UnityEditor.PlayerSettings;
 
 public class BoxInstance : MonoBehaviour
 {
@@ -49,6 +53,35 @@ public class BoxInstance : MonoBehaviour
         movingBlock.childFollow = displayAnchor.GetComponent<DelayedFollow>();
         movingBlock.blockState = BlockState.Inventory;
         movingBlock.enabled = true;
+
+        gameObject.name = "BL" + Random.Range(100000, 999999);
+
+        //Start listening for events
+        RegisterEvents();
     }
+
+    //This happens in the Instantiate() method only
+    //MIGHT BE REMOVED
+    void RegisterEvents()
+    {
+        BlockGravity.Instance.GlobalGravityCheckEvent.AddListener(UpdateGravity);
+        GridManager.Instance.UpdateOccupiedSpace.AddListener(UpdateOccupied);
+    }
+
+    //Calc gravity and desired pos.
+    //MIGHT BE REMOVED
+    private void UpdateGravity()
+    {
+    }
+
+    private void UpdateOccupied()
+    {
+        foreach(Vector3 gridPos in BoxUtils.GridSpacesInColliders(gameObject.GetComponents<BoxCollider>()))
+        {
+            GridManager.Instance.MarkOccupied(gridPos);
+        }
+
+    }
+
 
 }

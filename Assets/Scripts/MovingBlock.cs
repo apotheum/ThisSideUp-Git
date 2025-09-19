@@ -77,14 +77,19 @@ namespace ThisSideUp.Boxes
             //Debug.Log("Selected");
         }
 
-        //Stop placing block; reparents DISPLAY ANCHOR to BOX INSTANCE.
+        //Stop placing block; makes block "placed" and disables the MovingBlock component.
         public void StopPlacing()
+        {
+            blockState = BlockState.Placed;
+            enabled = false;
+        }
+
+        //Stop display anchor; reparents DISPLAY ANCHOR to BOX INSTANCE.
+        public void StopDisplayAnchor()
         {
             childFollow.StopFollowing();
             childFollow.gameObject.transform.parent = transform;
 
-            blockState = BlockState.Placed;
-            enabled = false;
         }
 
         //Converts all enabled BoxColliders into triggers. Enables certain box interactions.
@@ -119,12 +124,12 @@ namespace ThisSideUp.Boxes
                 if (!placed)
                 {
 
-                    if (Input.GetKeyDown(KeyCode.G))
-                    {
-                        MouseTracker.Instance.SelectBlock(this);
-                        placed = true;
+                    //if (Input.GetKeyDown(KeyCode.G))
+                    //{
+                    //    MouseTracker.Instance.SelectBlock(this);
+                    //    placed = true;
 
-                    }
+                    //}
 
                 }
             }

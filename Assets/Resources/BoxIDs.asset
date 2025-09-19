@@ -27,7 +27,17 @@ MonoBehaviour:
     name: 1x1 Flower Pot
   - appearance: {fileID: 2341631732934446681, guid: e8fea43a3c7d8ac408653a5a66dbbbac, type: 3}
     name: 1x1 Office Box
-  - appearance: {fileID: 2341631732934446681, guid: d2c9d40b6c2df2e4cb1c2baee3f535d0, type: 3}
-    name: 1x1 Office Box Papers
+  - appearance: {fileID: 2341631732934446681, guid: 5b15ff24c8fa6044893cce8336ec5b54, type: 3}
+    name: 1x1 Cauldron
+  - appearance: {fileID: 2341631732934446681, guid: 12c6312a4bbcf064fae837044c885ec0, type: 3}
+    name: 2x1 Bread Loaf
+  - appearance: {fileID: 2341631732934446681, guid: b246ed9d19bc79f4380c0604700a99d4, type: 3}
+    name: 1x1 Speaker
+  - appearance: {fileID: 2341631732934446681, guid: 13c3f49c7c4e40b40bb132fa84508ff0, type: 3}
+    name: 2x2x2 CRT TV
+  - appearance: {fileID: 2341631732934446681, guid: 1f7406c81459bc84b90ef6ece880ca1a, type: 3}
+    name: 3x1 Cactus
+  - appearance: {fileID: 2341631732934446681, guid: 37716ea6a191198419e73616f811d17b, type: 3}
+    name: 1x1 Water Jug
   - appearance: {fileID: 2341631732934446681, guid: 37716ea6a191198419e73616f811d17b, type: 3}
     name: 1x1 Water Jug

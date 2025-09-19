@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using ThisSideUp.Boxes;
 using ThisSideUp.Boxes.Core;
 using ThisSideUp.Boxes.Effects;
@@ -101,11 +102,34 @@ namespace ThisSideUp.Boxes.Core
         //Place the current block.
         public void PlaceCurrentBlock()
         {
-            GridManager.Instance.FindClampedLocationInGrid(BoxUtils.roundToGrid(selectedBlock.transform.position), selectedBlock);
+            GameObject selectedBlockObject = selectedBlock.gameObject;
+
+            BoxInstance selectedInstance=selectedBlock.GetComponent<BoxInstance>();
+
+            //Check if any grid spaces are outside the max Z coord. If so, game over!
+            List<Vector3> gridSpaces = BoxUtils.GridSpacesInColliders(selectedBlock.GetComponents<BoxCollider>());
+
+            foreach (Vector3 gridSpace in gridSpaces)
+            {
+                if (gridSpace.z >= GridManager.Instance.highestGridZ)
+                {
+                    Debug.Log("Game over! ("+gridSpace.z+")");
+                    BlockGravity.Instance.FinishPlacement(selectedInstance);
+                    return;
+                }
+            }
+
+            //Do block gravity calculation FIRST
+            BlockGravity.Instance.CheckGravity(selectedInstance);
+
+            //Mark the block as Placed; it can no longer follow the cursor
             selectedBlock.StopPlacing();
 
-            selectedBlock.gameObject.layer = 6;
+            //Invoke BlockPlaceEvent (MIGHT REMOVE)
             BlockPlaceEvent.Invoke(selectedBlock.transform.position);
+
+
+
 
             DeselectBlock();
         }
@@ -274,7 +298,28 @@ namespace ThisSideUp.Boxes.Core
                         Debug.Log("Left");
                     }
 
-                }
+                } 
+                //else if (vertical != 0)
+                //{
+                //    denyNextMovement = true;
+
+                //    if (vertical > 0)
+                //    {
+                //        //Rotate to the right
+                //        selectedBlock.transform.Rotate(new Vector3(0.0f, 90.0f, 0.0f));
+                //        selectedBlock.transform.position = roundedPoint;
+                //        GridManager.Instance.FindClampedLocationInGrid(roundedPoint, selectedBlock);
+                //        Debug.Log("Right");
+                //    }
+                //    else
+                //    {
+                //        //Rotate to the left
+                //        selectedBlock.transform.Rotate(new Vector3(0.0f, -90.0f, 0.0f));
+                //        selectedBlock.transform.position = roundedPoint;
+                //        GridManager.Instance.FindClampedLocationInGrid(roundedPoint, selectedBlock);
+                //        Debug.Log("Left");
+                //    }
+                //}
             }
             else
             {
