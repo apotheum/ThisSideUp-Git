@@ -59,14 +59,15 @@ public class BlockSpawner : MonoBehaviour
     {
         if (Input.GetKeyDown(KeyCode.T))
         {
-            BoxInstance newInstance= SpawnRandomBlock();
+            BoxInstance newInstance = SpawnRandomBlock();
 
             MouseTracker.Instance.SelectBlock(newInstance.GetComponent<MovingBlock>());
         }
 
     }
 
-    private BoxInstance SpawnRandomBlock()
+    //Spawn a random block and put it in the player's inventory.
+    public BoxInstance SpawnRandomBlock()
     {
 
         BoxInstance spawnedInstance = null;

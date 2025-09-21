@@ -39,5 +39,21 @@ MonoBehaviour:
     name: 3x1 Cactus
   - appearance: {fileID: 2341631732934446681, guid: 37716ea6a191198419e73616f811d17b, type: 3}
     name: 1x1 Water Jug
+  - appearance: {fileID: 2341631732934446681, guid: aa7bdd6fd63783f408533f33ef12d663, type: 3}
+    name: 2x2x2 MetalBox
+  - appearance: {fileID: 2341631732934446681, guid: 9b2f80ed055f25d42995356343fed452, type: 3}
+    name: Tires 1x2x2
+  - appearance: {fileID: 2341631732934446681, guid: 616fbf6b6e7c00447a3c1471e82c29bf, type: 3}
+    name: Tires 2x2x2
+  - appearance: {fileID: 2341631732934446681, guid: fedcc6ca5ba1d414895180c787b2ed5c, type: 3}
+    name: 2x1 Suitcase
+  - appearance: {fileID: 2341631732934446681, guid: 34802a6271cd45b49a893eb98b84ce23, type: 3}
+    name: 1x1 Safe
+  - appearance: {fileID: 2341631732934446681, guid: 842df3f6236bc4847a1249605a14f08b, type: 3}
+    name: 2x1 Terrarium
+  - appearance: {fileID: 2341631732934446681, guid: f08fc6432d38fea459ae99205c932cad, type: 3}
+    name: 1x1 GCN
+  - appearance: {fileID: 2341631732934446681, guid: 48825d503cbc5094d9f1e4168dc23e1e, type: 3}
+    name: 1x1 Sportsball
   - appearance: {fileID: 2341631732934446681, guid: 37716ea6a191198419e73616f811d17b, type: 3}
     name: 1x1 Water Jug

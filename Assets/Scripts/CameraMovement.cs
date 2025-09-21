@@ -1,3 +1,4 @@
+using System;
 using ThisSideUp.Boxes.Core;
 using UnityEngine;
 
@@ -14,29 +15,58 @@ public class CameraMovement : MonoBehaviour
     [SerializeField] private CameraPosition closestPos;
     [SerializeField] private CameraPosition furthestPos;
 
+    [SerializeField] private CameraPosition titlePos;
+
     [SerializeField] Camera[] cameras;
 
-    [SerializeField] private float lerpSpeed=1.0f;
+    [SerializeField] private float ingameLerpSpeed=1.0f;
+    [SerializeField] private float titleLerpSpeed=1.0f;
 
+    private float lerpSpeed;
     private float highestZOffset = 0;
 
     private Vector3 desiredPos;
+    private Quaternion desiredRot;
     private float desiredFov;
 
 
     private void Start()
     {
-        transform.position = closestPos.pos;
+        transform.position = titlePos.pos;
+        transform.rotation = titlePos.rot;
 
         foreach (Camera camera in cameras)
         {
-            camera.fieldOfView = closestPos.fov;
+            camera.fieldOfView = titlePos.fov;
         }
+
+        desiredPos = titlePos.pos;
+        desiredFov = titlePos.fov;
+        desiredRot = titlePos.rot;
+
+        lerpSpeed = titleLerpSpeed;
+
+        MouseTracker.Instance.BlockPlaceEvent.AddListener(OnBlockPlace);
+        GameManager.Instance.GameStartEvent.AddListener(OnGameStart);
+        GameManager.Instance.GameEndEvent.AddListener(OnGameEnd);
+    }
+
+    private void OnGameEnd()
+    {
+        desiredPos = titlePos.pos;
+        desiredFov = titlePos.fov;
+        desiredRot = titlePos.rot;
+    }
+
+    private void OnGameStart()
+    {
+        lerpSpeed = titleLerpSpeed;
+
+        highestZOffset = 0;
 
         desiredPos = closestPos.pos;
         desiredFov = closestPos.fov;
-
-        MouseTracker.Instance.BlockPlaceEvent.AddListener(OnBlockPlace);
+        desiredRot = closestPos.rot;
     }
 
     private void Update()
@@ -46,10 +76,15 @@ public class CameraMovement : MonoBehaviour
 
         if (currentPos != desiredPos)
         {
-            Vector3 newPos = Vector3.Lerp(currentPos, desiredPos, Mathf.Clamp01(Time.deltaTime * lerpSpeed));
-
-
+            Vector3 newPos = Vector3.Lerp(currentPos, desiredPos, Time.deltaTime * lerpSpeed);
             transform.position = newPos;
+        }
+
+        Quaternion currentRot = transform.rotation;
+        if(currentRot != desiredRot)
+        {
+            Quaternion newRot = Quaternion.Lerp(currentRot, desiredRot, Time.deltaTime * lerpSpeed);
+            transform.rotation = newRot;
         }
 
         foreach (Camera camera in cameras)
@@ -64,6 +99,9 @@ public class CameraMovement : MonoBehaviour
 
     private void OnBlockPlace(Vector3 pos)
     {
+
+        lerpSpeed = ingameLerpSpeed;
+
         float placedZLevel = pos.z;
 
         if (placedZLevel > highestZOffset)

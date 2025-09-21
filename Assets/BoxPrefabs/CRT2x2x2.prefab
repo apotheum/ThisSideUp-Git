@@ -192,6 +192,14 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: -5917629330721690895, guid: 10888e690c490fb468eedc3d402f52f8, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -5917629330721690895, guid: 10888e690c490fb468eedc3d402f52f8, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: -4
+      objectReference: {fileID: 0}
     - target: {fileID: 919132149155446097, guid: 10888e690c490fb468eedc3d402f52f8, type: 3}
       propertyPath: m_Name
       value: 2x2x2 TV

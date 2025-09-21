@@ -4,6 +4,7 @@ using ThisSideUp.Boxes.Core;
 using ThisSideUp.Boxes.Effects;
 using UnityEngine;
 using UnityEngine.Events;
+using static UnityEditor.PlayerSettings;
 
 namespace ThisSideUp.Boxes.Core
 {
@@ -47,7 +48,11 @@ namespace ThisSideUp.Boxes.Core
 
         private Vector3 lastHoveredPosition;
 
+        //When a block gets placed.
         public UnityEvent<Vector3> BlockPlaceEvent = new UnityEvent<Vector3>();
+
+        //Highest Z level any block has been placed.
+        public float highestKnownZ = 0;
 
         /* USER SETTINGS */
         private MovementMode movementMode;
@@ -104,20 +109,7 @@ namespace ThisSideUp.Boxes.Core
         {
             GameObject selectedBlockObject = selectedBlock.gameObject;
 
-            BoxInstance selectedInstance=selectedBlock.GetComponent<BoxInstance>();
-
-            //Check if any grid spaces are outside the max Z coord. If so, game over!
-            List<Vector3> gridSpaces = BoxUtils.GridSpacesInColliders(selectedBlock.GetComponents<BoxCollider>());
-
-            foreach (Vector3 gridSpace in gridSpaces)
-            {
-                if (gridSpace.z >= GridManager.Instance.highestGridZ)
-                {
-                    Debug.Log("Game over! ("+gridSpace.z+")");
-                    BlockGravity.Instance.FinishPlacement(selectedInstance);
-                    return;
-                }
-            }
+            BoxInstance selectedInstance=selectedBlock.GetComponent<BoxInstance>();            
 
             //Do block gravity calculation FIRST
             BlockGravity.Instance.CheckGravity(selectedInstance);
@@ -128,10 +120,20 @@ namespace ThisSideUp.Boxes.Core
             //Invoke BlockPlaceEvent (MIGHT REMOVE)
             BlockPlaceEvent.Invoke(selectedBlock.transform.position);
 
-
-
+            CalcHighestKnownZ(selectedBlock.transform.position);
 
             DeselectBlock();
+        }
+
+        void CalcHighestKnownZ(Vector3 pos)
+        {
+
+            float placedZLevel = pos.z;
+
+            if (placedZLevel > highestKnownZ)
+            {
+                highestKnownZ = Mathf.Min(placedZLevel, GridManager.Instance.highestGridZ);
+            }
         }
 
 
@@ -180,81 +182,6 @@ namespace ThisSideUp.Boxes.Core
                 }
             }
 
-            //Keyboard movement; buggy for now
-            else
-            {
-                bool updating = false;
-
-                if (selectedBlock != null)
-                {
-                    float horizontalMove = Input.GetAxis("Horizontal Move");
-                    float verticalMove = Input.GetAxis("Vertical Move");
-
-                    Vector3 dir = selectedBlock.transform.position;
-
-                    if (!denyNextMovement)
-                    {
-                        if (horizontalMove != 0)
-                        {
-                            denyNextMovement = true;
-                            updating = true;
-
-                            if (horizontalMove > 0)
-                            {
-                                dir.x += 1;
-                                Debug.Log("Right");
-                            }
-                            else
-                            {
-                                dir.x -= 1;
-                                Debug.Log("Left");
-                            }
-                        }
-                        if (verticalMove != 0)
-                        {
-                            updating = true;
-                            denyNextMovement = true;
-
-                            if (verticalMove > 0)
-                            {
-                                dir.y += 1;
-                                Debug.Log("Up");
-                            }
-                            else
-                            {
-                                dir.y -= 1;
-                                Debug.Log("Down");
-                            }
-                        }
-                    }
-                    else
-                    {
-                        if ((horizontalMove == 0) && (verticalMove == 0))
-                        {
-                            denyNextMovement = false;
-                        }
-                    }
-
-                    if (updating)
-                    {
-                        Vector3 roundedPoint = BoxUtils.roundToGrid(dir);
-                        HandleRotate(roundedPoint);
-
-                        if ((lastHoveredPosition == null) || (lastHoveredPosition != roundedPoint))
-                        {
-                            lastHoveredPosition = roundedPoint;
-                            debugIndicator.transform.position = lastHoveredPosition;
-
-                            selectedBlock.transform.position = roundedPoint;
-                            Debug.Log("HEHE");
-                            GridManager.Instance.FindClampedLocationInGrid(roundedPoint, selectedBlock);
-                        }
-                    }
-                }
-
-
-            }
-
             //Block placement
             if (Input.GetMouseButtonDown(2))
             {
@@ -299,27 +226,6 @@ namespace ThisSideUp.Boxes.Core
                     }
 
                 } 
-                //else if (vertical != 0)
-                //{
-                //    denyNextMovement = true;
-
-                //    if (vertical > 0)
-                //    {
-                //        //Rotate to the right
-                //        selectedBlock.transform.Rotate(new Vector3(0.0f, 90.0f, 0.0f));
-                //        selectedBlock.transform.position = roundedPoint;
-                //        GridManager.Instance.FindClampedLocationInGrid(roundedPoint, selectedBlock);
-                //        Debug.Log("Right");
-                //    }
-                //    else
-                //    {
-                //        //Rotate to the left
-                //        selectedBlock.transform.Rotate(new Vector3(0.0f, -90.0f, 0.0f));
-                //        selectedBlock.transform.position = roundedPoint;
-                //        GridManager.Instance.FindClampedLocationInGrid(roundedPoint, selectedBlock);
-                //        Debug.Log("Left");
-                //    }
-                //}
             }
             else
             {

@@ -107,7 +107,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   childFollow: {fileID: 0}
-  blockState: 3
   OnBlockStateChanged:
     m_PersistentCalls:
       m_Calls: []

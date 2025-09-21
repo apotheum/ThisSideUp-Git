@@ -32,7 +32,7 @@ namespace ThisSideUp.Boxes
 
         //The current block state, event for when it changes, and method for changing it.
         //See comment above enum for a description of each state.
-        public BlockState blockState;
+        public BlockState blockState { get; private set; }
         public UnityEvent OnBlockStateChanged;
         public void ChangeState(BlockState newState)
         {

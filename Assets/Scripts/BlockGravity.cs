@@ -1,9 +1,11 @@
+using DG.Tweening;
 using NUnit.Framework;
 using System.Collections.Generic;
 using ThisSideUp.Boxes;
 using ThisSideUp.Boxes.Core;
 using UnityEngine;
 using UnityEngine.Events;
+using static UnityEditor.PlayerSettings;
 
 public class BlockGravity : MonoBehaviour
 {
@@ -28,6 +30,13 @@ public class BlockGravity : MonoBehaviour
         if (instance == null) { instance = this; }
         else { Destroy(gameObject); return; }
     }
+
+    private void Start()
+    {
+        GameManager.Instance.GameResetEvent.AddListener(OnGameReset);
+    }
+
+    public UnityEvent<BoxInstance> PlacedInvalidBlock = new UnityEvent<BoxInstance>();
 
     /* Block Gravity */
     //The Gravity Check event. This gets called through two methods:
@@ -148,6 +157,9 @@ public class BlockGravity : MonoBehaviour
         gravityQueue.Add(gravityPos);
 
         gravityUpdateComplete = false;
+
+        //Start gravity check.
+        NextInQueue();
     }
 
     [SerializeField] private float fallSpeed = 0.1f;
@@ -159,54 +171,60 @@ public class BlockGravity : MonoBehaviour
     private BoxInstance currentInstance;
     private Vector3 desiredPos;
 
-    private void LateUpdate()
+
+    private void StartGravity(GravityPos gravityPos)
     {
+        BoxInstance boxInstance = gravityPos.instance;
+        Transform currentLoc = boxInstance.gameObject.transform;
 
-        if (gravityUpdateComplete) { return; }
+        Sequence sequence = DOTween.Sequence();
+        sequence.Append(currentLoc.DOMove(gravityPos.desiredPos, fallSpeed)).SetEase(Ease.OutBounce);
+        sequence.OnComplete(() => FinishGravity(gravityPos));
+        sequence.Play();
+    }
 
-        if (currentInstance != null)
+    //When the block has finished falling. This method is a callback for a DOTween sequence found in StartGravity().
+    void FinishGravity(GravityPos gravityPos)
+    {
+        //Remove this block from the queue,
+        gravityQueue.Remove(gravityPos);
+
+        BoxInstance boxInstance = gravityPos.instance;
+
+        FinishPlacement(boxInstance);
+
+        //then check it again for any remaining members.
+        NextInQueue();
+
+    }
+
+    private void NextInQueue()
+    {
+        //We obtain the next member of the gravity queue.
+        if (gravityQueue.Count > 0)
         {
-            Vector3 pos = currentInstance.transform.position;
-            Vector3 newPos=new Vector3(pos.x,pos.y-(fallSpeed*Time.deltaTime), pos.z);
+            GravityPos pos = gravityQueue[0];
 
-            if (newPos.y > desiredPos.y)
-            {
-                currentInstance.transform.position=newPos;
-            }
-            else
-            {
-                currentInstance.transform.position=BoxUtils.roundToGrid(pos);
-                currentInstance = null;
-            }
+            currentInstance = pos.instance;
+            desiredPos = pos.desiredPos;
+
+            StartGravity(pos);
         }
         else
         {
-            if (gravityQueue.Count > 0)
-            {
-                GravityPos pos = gravityQueue[0];
+            //All gravity operations ceased; allow mouse movement and recalculate grid space
+            UpdateGrid();
 
-                currentInstance = pos.instance;
-                desiredPos = pos.desiredPos;
-
-                FinishPlacement(currentInstance);
-
-                gravityQueue.Remove(pos);
-            }
-            else
-            {
-                //All gravity operations ceased; allow mouse movement and recalculate grid space
-                UpdateGrid();
-
-                gravityUpdateComplete = true;
-            }
+            gravityUpdateComplete = true;
         }
-
     }
+
     
     //Finish placing the block.
     public void FinishPlacement(BoxInstance instance)
     {
         Debug.Log("Finalizing placement for '" + instance.gameObject.name+"'");
+        Debug.Log(instance.gameObject+" is at "+instance.gameObject.transform.position);
 
         MovingBlock movingBlock=instance.GetComponent<MovingBlock>();
 
@@ -218,12 +236,43 @@ public class BlockGravity : MonoBehaviour
 
         //Update the Z Cache in GridManager of the highest placed Z for this XY coordinate. Might remove.
         GridManager.Instance.UpdateZCache(instance.gameObject);
+
+        GridManager.Instance.AddPlacedBox(instance);
+
+        //Check if any grid spaces are outside the max Z coord. If so, game over!
+        List<Vector3> gridSpaces = BoxUtils.GridSpacesInColliders(instance.gameObject.GetComponents<BoxCollider>());
+
+        bool gameOver = false;
+
+        foreach (Vector3 gridSpace in gridSpaces)
+        {
+            if (gridSpace.z >= GridManager.Instance.highestGridZ)
+            {
+                Debug.Log("Game over! (" + gridSpace.z + ")");
+                gameOver = true;
+                break;
+            }
+        }
+
+        if (gameOver)
+        {
+            PlacedInvalidBlock.Invoke(instance);
+
+        }
     }
 
+
+    //Update the grid after all blocks have settled.
     private void UpdateGrid()
     {
         GridManager.Instance.RecalculateOccupiedSpaces();
         GridManager.Instance.RecalculateSealedAndUnsealedFreeSpaces();
+
+        if (!GameManager.Instance.gameOver)
+        {
+            BlockInventory.Instance.ShowInventory();
+        }
+        
     }
 
     struct GravityPos
@@ -233,4 +282,10 @@ public class BlockGravity : MonoBehaviour
 
     }
 
+    void OnGameReset()
+    {
+        currentInstance = null;
+        gravityQueue.Clear();
+        //desiredPos = null;
+    }
 }

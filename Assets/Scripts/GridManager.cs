@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.Events;
 
@@ -34,13 +35,20 @@ namespace ThisSideUp.Boxes.Core
         public int gridWidthHeight = 7;
         public int highestGridZ = 14;
 
+
         //Singleton initialization
         private void Awake()
         {
             if (instance == null) { instance = this; }
             else { Destroy(gameObject); return; }
         }
-                
+
+        private void Start()
+        {
+            GameManager.Instance.GameResetEvent.AddListener(OnGameReset);
+        }
+
+
         /* Debug Gizmo */
         //Debug purposes
         private List<Vector3> insideCollider = new List<Vector3>();
@@ -53,6 +61,26 @@ namespace ThisSideUp.Boxes.Core
                 {
                     Gizmos.DrawSphere(point, 0.1f); 
                 }
+            }
+        }
+
+        /* Placed Blocks */
+        //Every BoxInstance that has been placed.
+        public List<BoxInstance> placedBoxes = new List<BoxInstance>();
+
+        public void AddPlacedBox(BoxInstance boxInstance)
+        {
+            if (!placedBoxes.Contains(boxInstance))
+            {
+                placedBoxes.Add(boxInstance);
+            }
+        }
+
+        public void RemovePlacedBox(BoxInstance boxInstance)
+        {
+            if (placedBoxes.Contains(boxInstance))
+            {
+                placedBoxes.Remove(boxInstance);
             }
         }
 
@@ -80,7 +108,7 @@ namespace ThisSideUp.Boxes.Core
                 occupiedSpaces.Add(roundedPos);
                 //insideCollider.Add(roundedPos);
 
-                Debug.Log("Marking "+ roundedPos.x+", "+ roundedPos.y+", "+roundedPos.z +"("+pos.x+","+pos.y+","+pos.z+") as occupied");
+                //Debug.Log("Marking "+ roundedPos.x+", "+ roundedPos.y+", "+roundedPos.z +"("+pos.x+","+pos.y+","+pos.z+") as occupied");
             }
         }
 
@@ -93,7 +121,7 @@ namespace ThisSideUp.Boxes.Core
                 occupiedSpaces.Remove(roundedPos);
                 //insideCollider.Remove(roundedPos);
 
-                Debug.Log("Clearing occupied space " + roundedPos.x + ", " + roundedPos.y + ", " + roundedPos.z + "(" + pos.x + "," + pos.y + "," + pos.z + ")");
+                //Debug.Log("Clearing occupied space " + roundedPos.x + ", " + roundedPos.y + ", " + roundedPos.z + "(" + pos.x + "," + pos.y + "," + pos.z + ")");
             }
         }
 
@@ -194,7 +222,7 @@ namespace ThisSideUp.Boxes.Core
                         if (BoxUtils.PositionIsInsideXY(neighbor))
                         {
                             if ((neighborZ <= (highestGridZ + 1)) && (neighborZ >= 0))
-                            {
+                            {                         
                                 if (!occupiedSpaces.Contains(neighbor))
                                 {
                                     if (!visited.Contains(neighbor))
@@ -274,6 +302,8 @@ namespace ThisSideUp.Boxes.Core
         //Recalculate the unsealed free spaces and store them in each array. This is an expensive ass operation, so it only happens when a block gets placed.
         public void RecalculateSealedAndUnsealedFreeSpaces()
         {
+
+
             insideCollider.Clear();
 
             List<Vector3> unsealedSpaces = GetUnsealedFreeSpaces();
@@ -304,11 +334,12 @@ namespace ThisSideUp.Boxes.Core
 
         //Highest Z Cache. When a block gets placed, this dictionary updates with the highest Z layer a block was placed on.
         //The cursor object is then clamped to this highest Z layer; this forces the player to place as close as they can
-        //while also allowing clever movement for "overlaps" (if a block from somewhere else gets placed nearby.
+        //while also allowing clever movement for "overlaps" (if a block from somewhere else gets placed nearby, etc.)
         private Dictionary<Vector2,float> highestZCache = new Dictionary<Vector2,float>();
 
         public void UpdateZCache(GameObject placedBlock)
         {
+
             List<Vector3> worldspaceGridCoords = BoxUtils.GridSpacesInColliders(placedBlock.GetComponents<BoxCollider>());
 
             foreach (Vector3 pos in worldspaceGridCoords)
@@ -325,11 +356,17 @@ namespace ThisSideUp.Boxes.Core
                 }
 
             }
+
+            foreach(Vector2 pos in highestZCache.Keys)
+            {
+                Vector3 space = new Vector3(pos.x, pos.y, highestZCache[pos]);
+                insideCollider.Add(space);
+            }
         }
 
         public void FindClampedLocationInGrid(Vector3 pointerLoc, MovingBlock selectedBlock)
         {
-            insideCollider.Clear();
+            //insideCollider.Clear();
 
             //This method does two things:
             //1. Clamps the location of the parent transform so all of the block's colliders fit inside the grid.
@@ -349,14 +386,6 @@ namespace ThisSideUp.Boxes.Core
             float shiftZ = 0; //This is mainly unused for grid purposes; it's for block collision
 
             //Absolute minimum and maximum worldspace extent of every collider.
-            //If the minX and
-            float minX = int.MaxValue;
-            float minY = int.MaxValue;
-            float minZ = int.MaxValue;
-
-            float maxX = int.MinValue;
-            float maxY = int.MinValue;
-            float maxZ = int.MinValue;
 
             //Colliders on this block gameObject.
             BoxCollider[] blockColliders = selectedBlock.GetComponents<BoxCollider>();
@@ -367,42 +396,27 @@ namespace ThisSideUp.Boxes.Core
             //Calculate the maximum X and Y coordinate of each vertex in any colliders attached to the parent object.
             //This results in a rectangle shape that takes into account all of the colliders;
             //later, we check its extents if they are outside grid space.
-            foreach (BoxCollider coll in blockColliders)
-            {
-                if (coll.enabled)
-                {
-                    Vector3[] worldspaceVerts = BoxUtils.WorldspaceColliderVertices(coll);
+            Vector3[] minMaxOfColliders=BoxUtils.WorldspaceMinMaxOfColliders(blockColliders);
 
-                    foreach (Vector3 pos in worldspaceVerts)
-                    {
-                        //Update the global min and max coordinates to the total coordinates of ALL colliders.
-                        //This allows us to check the grid for any illegal positions, then shift the block back inside.
-                        if (pos.x > maxX) { maxX = pos.x; }
-                        if (pos.y > maxY) { maxY = pos.y; }
-                        if (pos.z > maxZ) { maxZ = pos.z; }
-
-                        if (pos.x < minX) { minX = pos.x; }
-                        if (pos.y < minY) { minY = pos.y; }
-                        if (pos.z < minZ) { minZ = pos.z; }
-                    }
-                }
-            }
+            //Absolute min and max worldspace positions of every vertex in every collider.
+            Vector3 absoluteMin=minMaxOfColliders[0];
+            Vector3 absoluteMax=minMaxOfColliders[1];
 
             //Debug purposes for the above method
-            minCornerSphere.transform.position = new Vector3(minX, minY, minZ);
-            maxCornerSphere.transform.position = new Vector3(maxX, maxY, maxZ);
+            minCornerSphere.transform.position = absoluteMin;
+            maxCornerSphere.transform.position = absoluteMax;
 
             //If MinX or MinY are less than 0, the shift value becomes the absolute value.
             //Example: MinX is -3. The absolute value of MinX is therefore 3. We shift the block by 3 so it ends up at 0 again.
-            if (minX < 0) { shiftX = Math.Abs(minX) - 0.5f; }
-            if (minY < 0) { shiftY = Math.Abs(minY) - 0.5f; }
-            if (minZ < 0) { shiftZ = Math.Abs(minZ) - 0.5f; }
+            if (absoluteMin.x < 0) { shiftX = Math.Abs(absoluteMin.x) - 0.5f; }
+            if (absoluteMin.y < 0) { shiftY = Math.Abs(absoluteMin.y) - 0.5f; }
+            if (absoluteMin.z < 0) { shiftZ = Math.Abs(absoluteMin.z) - 0.5f; }
 
             //If MaxX is greater than the grid height (ie. 8 vs. 7, we subtract the value of MaxX from the grid height.
             //This always returns a negative number, so it can be safely added to the position at the end.
             //There is no MaxZ; placing outside the maximum Z height is the only way to end the game.
-            if (maxX > gridWidthHeight) { shiftX = gridWidthHeight - maxX + 0.5f; }
-            if (maxY > gridWidthHeight) { shiftY = gridWidthHeight - maxY + 0.5f; }
+            if (absoluteMax.x > gridWidthHeight) { shiftX = gridWidthHeight - absoluteMax.x + 0.5f; }
+            if (absoluteMax.y > gridWidthHeight) { shiftY = gridWidthHeight - absoluteMax.y + 0.5f; }
 
             //The lowest possible valid Z layer. By default, this is 0, but the cursor can sometimes be at a Z level higher than 0,
             //so we default to the player's input.
@@ -413,13 +427,11 @@ namespace ThisSideUp.Boxes.Core
 
 
             //The pointer loc is clamped to the furthest forward block on the Z layer of this X and Y coordinate.
-
+            //The max Z layer increases when a block gets placed; if we don't clamp the cursor to it, the player could place blocks on any Z coordinate,
+            //which we don't want.
             float highestCachedZLayer = 0;
             Vector2 xy = new Vector2(parentPos.x, parentPos.y);
             if (highestZCache.ContainsKey(xy)) { highestCachedZLayer = highestZCache[xy]+1; }
-
-            //Debug.Log("HighestCachedZLayer of ("+xy+"): " + highestCachedZLayer);
-            //
 
             //The next Z layer, starting at the pointer location.
             //The pointer loc can move forward depending on if there's a box at that point.
@@ -428,7 +440,6 @@ namespace ThisSideUp.Boxes.Core
 
             if (nextZLayer > highestCachedZLayer) { nextZLayer = highestCachedZLayer; }
 
-            //Debug.Log("NextZLayer:" + nextZLayer);
 
             //Grid-clamped position without respect for the Z layer.
             //This forces the block to stay inside the grid, but does nothing for the Z layer.
@@ -444,26 +455,19 @@ namespace ThisSideUp.Boxes.Core
             // // // Z LAYER INTERACTION // // // 
             //
 
-            //The next "free" Z position the block can fit in.
-            //This starts at pointerLoc.z, but increases if there are no free spaces for any of the box's colliders.
-            //MIGHT REMOVE
-            //float nextAvailableZPos = nextZLayer;
+            //The player should be able to directly place objects behind larger ones to fill space.
+            //The following logic takes the cursor position, which may or may not be inside a block, and finds the next safest Z coordinate a block can live in.
 
-            //MIGHT REMOVE
-            Debug.Log("NextAvailableZPos start:" + initialPosWithoutZ);
-
-            //We start at the original location.
+            //We start at the original location. This can sometimes be inside a box, so it isn't assumed safe.
             selectedBlock.transform.position = initialPosWithoutZ;
 
-            Vector3 originalLocBeforeZFormat = initialPosWithoutZ;
-
+            //This location increases by 1 each time the following while loop runs. It's how we step forward and check for blocks already there.
             Vector3 moveLocZFormat = initialPosWithoutZ;
 
-            Debug.Log("STARTING SCAN AT " + originalLocBeforeZFormat);
-
-            //Start from the z pos. We've already moved it to the cursor.
+            //This becomes true and terminates the while loop when every grid space inside every collider has no other blocks occupying it.
             bool foundSafePlace = false;
 
+            //Step forward by 1, check if there are any boxes intersecting with our colliders, then terminate or repeat the check if necessary.
             while (!foundSafePlace)
             {
                 //Spaces in the box colliders at this current position
@@ -489,7 +493,7 @@ namespace ThisSideUp.Boxes.Core
                             {
                                 somethingInTheWay = true;
 
-                                Debug.Log("Found something in the way at " + gridPoint);
+                                //Debug.Log("Found something in the way at " + gridPoint);
                             }
                         }
                     }
@@ -510,80 +514,18 @@ namespace ThisSideUp.Boxes.Core
             }
 
             selectedBlock.transform.position= moveLocZFormat;
-
-
-
-            ////Starting from the PointerLoc Z position, moving 1 space at a time, check every Worldspace grid position in each collider
-            ////for any other BoxCollider in existence there.
-            ////Debug.Log("PointerLoc Z is starting at " + pointerLoc.z);
-
-            ////Every Vector3 position in every collider of the copied object.
-            ////These positions get added to the value 'i' in the following loop on the Z axis.
-            //List<Vector3> pointsInCopiedColliders = BoxUtils.GridSpacesInColliders(selectedBlock.GetComponents<BoxCollider>());
-
-            //foreach (Vector3 colPoint in pointsInCopiedColliders)
-            //{
-            //    //insideCollider.Add(colPoint);
-            //}
-
-            ////For every Z layer above the pointerLoc...
-            //for (float i = nextAvailableZPos; i < 20 /* Arbitrary value of 20 */; i++)
-            //{
-            //    //If every collider is safe. Default true, but becomes false if we find ANY collider belonging not to us.
-            //    bool safe = true;
-
-            //    float iteratingZPos = i;
-
-            //    foreach (Vector3 gridPos in pointsInCopiedColliders)
-            //    {
-            //        Vector3 posToTest = gridPos;
-            //        posToTest.z = gridPos.z + i;
-
-            //        //insideCollider.Add(posToTest);
-
-            //        List<GameObject> blocksAtPosition = BoxUtils.FindBlocksAtPosition(posToTest, selectedBlock);
-
-            //        if (blocksAtPosition.Count > 0)
-            //        {
-            //            //Debug.Log("Found other block at " + posToTest.x + ", " + posToTest.y + ", " + posToTest.z);
-            //            safe = false;
-            //            break;
-            //        }
-
-            //        if (sealedSpaceCache.Contains(posToTest))
-            //        {
-            //            Debug.Log("Found sealed space!!");
-            //            safe = false;
-            //            break;
-            //        }
-
-
-            //    }
-
-            //    if (safe)
-            //    {
-            //        Vector3 iteratedPos = new Vector3(initialPosWithoutZ.x, initialPosWithoutZ.y, iteratingZPos);
-            //        nextAvailableZPos = iteratingZPos;
-            //        //Debug.Log("Found safe position at " + iteratedPos);
-            //        break;
-            //    }
-
-            //}
-
-            ////Finally, we have a Vector3 that's both clamped inside the grid and has found the next free Z position.
-            //Vector3 blockSnappedPos = initialPosWithoutZ;
-            //blockSnappedPos.z = nextAvailableZPos;
-
-            ////Debug.Log("Ended up with " + blockSnappedPos.x + ", " + blockSnappedPos.y + ", " + blockSnappedPos.z);
-
-            //selectedBlock.transform.position = blockSnappedPos;
-
-
-
-
         }
 
-
+        //Game reset clears all lists and caches.
+        void OnGameReset()
+        {
+            highestZCache.Clear();
+            placedBoxes.Clear();
+            insideCollider.Clear();
+            occupiedSpaces.Clear();
+            unsealedSpaceCache.Clear();
+            sealedSpaceCache.Clear();
+        }
 
     }
 

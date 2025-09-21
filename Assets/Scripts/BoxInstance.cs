@@ -51,7 +51,7 @@ public class BoxInstance : MonoBehaviour
         //Configure, then enable, the MovingBlock component attached to this object.
 
         movingBlock.childFollow = displayAnchor.GetComponent<DelayedFollow>();
-        movingBlock.blockState = BlockState.Inventory;
+        movingBlock.ChangeState(BlockState.Inventory);
         movingBlock.enabled = true;
 
         gameObject.name = "BL" + Random.Range(100000, 999999);
@@ -66,6 +66,16 @@ public class BoxInstance : MonoBehaviour
     {
         BlockGravity.Instance.GlobalGravityCheckEvent.AddListener(UpdateGravity);
         GridManager.Instance.UpdateOccupiedSpace.AddListener(UpdateOccupied);
+    }
+
+    private void Start()
+    {
+        GameManager.Instance.GameResetEvent.AddListener(OnGameReset);
+    }
+
+    private void OnGameReset()
+    {
+        Destroy(this.gameObject);
     }
 
     //Calc gravity and desired pos.

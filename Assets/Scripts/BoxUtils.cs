@@ -16,6 +16,42 @@ namespace ThisSideUp.Boxes.Core
             return roundedPoint;
         }
 
+        //Calculate the maximum X and Y coordinate of each vertex in any colliders attached to the parent object.
+        //This results in a rectangle shape that takes into account all of the colliders;
+        //later, we check its extents if they are outside grid space.
+        public static Vector3[] WorldspaceMinMaxOfColliders(BoxCollider[] blockColliders)
+        {
+            Vector3[] minMax = new Vector3[2];
+
+            Vector3 min = new Vector3(int.MaxValue, int.MaxValue, int.MaxValue);
+            Vector3 max = new Vector3(int.MinValue, int.MinValue, int.MinValue);
+
+            foreach (BoxCollider coll in blockColliders)
+            {
+                if (coll.enabled)
+                {
+                    Vector3[] worldspaceVerts = BoxUtils.WorldspaceColliderVertices(coll);
+
+                    foreach (Vector3 pos in worldspaceVerts)
+                    {
+                        //Update the global min and max coordinates to the total coordinates of ALL colliders.
+                        //This allows us to check the grid for any illegal positions, then shift the block back inside.
+                        if (pos.x > max.x) { max.x = pos.x; }
+                        if (pos.y > max.y) { max.y = pos.y; }
+                        if (pos.z > max.z) { max.z = pos.z; }
+
+                        if (pos.x < min.x) { min.x = pos.x; }
+                        if (pos.y < min.y) { min.y = pos.y; }
+                        if (pos.z < min.z) { min.z = pos.z; }
+                    }
+                }
+            }
+
+            minMax[0] = min;
+            minMax[1] = max;
+
+            return minMax;
+        }
 
         //This method obtains the worldspace position of each vertex in a BoxCollider.
         //BoxColliders can have variable width + height, and they can intersect each other.
@@ -159,6 +195,8 @@ namespace ThisSideUp.Boxes.Core
                             for (float insideZ = firstInsidePoint.z; insideZ <= colliderLocalMax.z; insideZ++)
                             {
                                 Vector3 insidePoint = new Vector3(insideX, insideY, insideZ);
+
+                                insidePoint=BoxUtils.roundToGrid(insidePoint);
 
                                 gridSpacesInCollider.Add(insidePoint);
                             }
