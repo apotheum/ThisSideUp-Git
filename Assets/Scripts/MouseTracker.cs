@@ -4,7 +4,6 @@ using ThisSideUp.Boxes.Core;
 using ThisSideUp.Boxes.Effects;
 using UnityEngine;
 using UnityEngine.Events;
-using static UnityEditor.PlayerSettings;
 
 namespace ThisSideUp.Boxes.Core
 {

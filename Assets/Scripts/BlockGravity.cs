@@ -5,7 +5,6 @@ using ThisSideUp.Boxes;
 using ThisSideUp.Boxes.Core;
 using UnityEngine;
 using UnityEngine.Events;
-using static UnityEditor.PlayerSettings;
 
 public class BlockGravity : MonoBehaviour
 {

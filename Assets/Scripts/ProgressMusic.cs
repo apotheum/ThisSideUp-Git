@@ -1,7 +1,6 @@
 using System;
 using ThisSideUp.Boxes.Core;
 using UnityEngine;
-using static UnityEditor.PlayerSettings;
 
 public class ProgressMusic : MonoBehaviour
 {

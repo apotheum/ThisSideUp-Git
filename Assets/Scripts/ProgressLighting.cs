@@ -2,7 +2,6 @@ using System;
 using System.Runtime.CompilerServices;
 using ThisSideUp.Boxes.Core;
 using UnityEngine;
-using static UnityEditor.PlayerSettings;
 
 public class ProgressLighting : MonoBehaviour
 {
@@ -35,12 +34,14 @@ public class ProgressLighting : MonoBehaviour
         GameManager.Instance.GameResetEvent.AddListener(OnGameReset);
     }
 
+    private float highestZOffset = 0;
+
     private void OnGameReset()
     {
+        highestZOffset = 0;
         desiredData = startData;
     }
 
-    private float highestZOffset = 0;
 
     void UpdateCurrentColor(Vector3 pos) {
 
